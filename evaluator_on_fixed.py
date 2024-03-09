@@ -126,3 +126,5 @@ for key,value in energy.items():
 
 print(cycle)
 print(op)
+
+print('Energy_Efficiency:', op / energy['Total_Energy_Consump'], 'TOPS/W')
