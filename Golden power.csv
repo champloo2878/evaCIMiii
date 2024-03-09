@@ -1,0 +1,20 @@
+"250MHz @(ssg, 0.81, -40)"								
+Instruction \ Power Break (mW)	fd.input_sram	fd.regs	cm.cims	cm.regs	gd.output_sram	gd.regs	top_ctrl.regs	Total
+Lin	1	1	1	1	1	1	1	7
+Linp	1	1	1	1	1	1	1	7
+Lwt	1	1	1	1	1	1	1	7
+Lwtp	1	1	1	1	1	1	1	7
+Cmpfis<aor>	1	1	1	1	1	1	1	7
+Cmpfis<tos>	1	1	1	1	1	1	1	7
+Cmpfis<aos>	1	1	1	1	1	1	1	7
+Cmpfis<ptos>	1	1	1	1	1	1	1	7
+Cmpfis<paos>	1	1	1	1	1	1	1	7
+Cmpfgt<aor>	1	1	1	1	1	1	1	7
+Cmpfgt<tos>	1	1	1	1	1	1	1	7
+Cmpfgt<aos>	1	1	1	1	1	1	1	7
+Cmpfgt<ptos>	1	1	1	1	1	1	1	7
+Cmpfgt<paos>	1	1	1	1	1	1	1	7
+Cmpfgtp	1	1	1	1	1	1	1	7
+Lpenalty	1	1	1	1	1	1	1	7
+Nop	1	1	1	1	1	1	1	7
+Nop<aor>	1	1	1	1	1	1	1	7

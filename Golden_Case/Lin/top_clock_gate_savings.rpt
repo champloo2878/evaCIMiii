@@ -1,0 +1,30 @@
+****************************************
+Report : Clock Gate Savings
+	power_mode: Time_based
+	-sequential
+	-hierarchical
+Design : top
+Version: M-2016.12-SP2
+Date   : Fri Mar  8 13:38:25 2024
+****************************************
+
+-----------------------------------------------------------------------------------------------------------------------------------------
+The reported Average Register Gating Efficiency is the average over all registers in the
+module. For the Average Q/Clk Toggle Ratio, registers with no clock toggle are ignored.
+-----------------------------------------------------------------------------------------------------------------------------------------
+Module                                               Number of            Number of       Number of        Avg Q/Clk     Avg Register
+                                                     Registers            Ungated         Registers with   Toggle        Gating
+                                                                          Registers       no clock toggle  Ratio         Efficiency
+-----------------------------------------------------------------------------------------------------------------------------------------
+top                                                  12842                5418            6912             3.5%          53.8%
+ u_gd                                                6463                 2367            4096             0.0%          63.4%
+  u_int32_int8                                       0                    0               0                NA            0.0%
+  u_output_sram                                      9                    9               0                0.0%          0.0%
+ u_fd                                                4144                 816             2816             10.3%         68.0%
+  u_input_sram                                       8                    8               0                0.0%          0.0%
+ u_macros                                            1298                 1298            0                0.0%          0.0%
+ u_macros_ctrls                                      98                   98              0                0.0%          0.0%
+ u_gd_ctrls                                          276                  276             0                0.0%          0.0%
+ u_penalty                                           258                  258             0                0.0%          0.0%
+-----------------------------------------------------------------------------------------------------------------------------------------
+1

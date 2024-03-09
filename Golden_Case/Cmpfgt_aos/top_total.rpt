@@ -1,0 +1,66 @@
+****************************************
+Report : Time Based Power
+	-verbose
+Design : top
+Version: M-2016.12-SP2
+Date   : Fri Mar  8 13:42:38 2024
+****************************************
+
+Simulation Periods: 926 ns - 966 ns
+
+Sampling Interval: 1 ns
+
+Library(s) Used:
+
+    tcbn28hpcplusbwp7t30p140hvtssg0p81vm40c_ccs (File: /projects/soc/TECHLIB/TSMC/28nm/tcbn28hpcplusbwp7t30p140hvt_180a/TSMCHOME/digital/Front_End/timing_power_noise/CCS/tcbn28hpcplusbwp7t30p140hvt_180a/tcbn28hpcplusbwp7t30p140hvtssg0p81vm40c_ccs.db)
+    sram_1024x128_ssg_0p81v_0p81v_m40c (File: /home/soc/shiyh23/5_GPCIMPU/2-SYN/link_lib/sram_1024x128_ssg_0p81_0p81_m40c_ccs.db)
+    sin_bp_macro_ssg0p81vm40c (File: /home/soc/shiyh23/5_GPCIMPU/2-SYN/link_lib/sin_bp_macro_ssg0p81vm40c.db)
+
+
+Operating Conditions: ssg0p81vm40c   Library: tcbn28hpcplusbwp7t30p140hvtssg0p81vm40c_ccs
+Wire Load Model Mode: top
+
+Cell               Design       Wire_model  Library       Selection_type
+--------------------------------------------------------------------------------
+                   top          ZeroWireload
+                                            tcbn28hpcplusbwp7t30p140hvtssg0p81vm40c_ccs
+                                                          automatic-by-area
+
+Power-specific unit information :
+    Voltage Units = 1 V
+    Capacitance Units = 1 pf
+    Time Units = 1 ns
+    Dynamic Power Units = 1 W
+    Leakage Power Units = 1 W
+
+
+
+  Attributes
+  ----------
+      i  -  Including register clock pin internal power
+      u  -  User defined power group
+
+                        Internal  Switching  Leakage    Total
+Power Group             Power     Power      Power      Power   (     %)  Attrs
+--------------------------------------------------------------------------------
+clock_network           1.146e-04 1.220e-04 1.445e-08 2.366e-04 ( 0.68%)  
+register                4.942e-03 1.120e-05 1.094e-06 4.954e-03 (14.29%)  i
+combinational           3.313e-05 8.345e-05 4.202e-07 1.170e-04 ( 0.34%)  
+sequential                 0.0000    0.0000    0.0000    0.0000 ( 0.00%)  
+memory                     0.0152    0.0000 1.497e-04    0.0153 (44.16%)  
+io_pad                     0.0000    0.0000    0.0000    0.0000 ( 0.00%)  
+black_box                  0.0139    0.0000 1.739e-04    0.0141 (40.53%)  
+
+  Net Switching Power  = 2.166e-04   ( 0.62%)
+  Cell Internal Power  =    0.0341   (98.44%)
+  Cell Leakage Power   = 3.251e-04   ( 0.94%)
+                         ---------
+Total Power            =    0.0347  (100.00%)
+
+X Transition Power     =    0.0000
+Glitching Power        =    0.0000
+
+Peak Power             =    0.1165
+Peak Time              =       966
+
+1
