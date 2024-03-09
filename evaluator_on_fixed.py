@@ -14,6 +14,11 @@ power_si = get_power(acc0)
 inst_path = "./mi.log"
 freq = 250 # MHz
 
+def check_prefetch_read(inst, power_src, power_pr):
+    if inst == '<os_rd_addr>': return power_src + power_pr
+    else: return power_src
+
+
 with open(inst_path, 'r') as cflow:
     eva_start = False
     cycle = 0
@@ -30,7 +35,7 @@ with open(inst_path, 'r') as cflow:
 
             inst = line.split()
             if inst[0] == instruction_set[0]: # Lin
-                energy[0] += power_si[0][7]  
+                energy[0] += check_prefetch_read(inst[-2], power_si[0][7], power_si[17][7]) 
 
             elif inst[0] == instruction_set[1]: # Linp
                 energy[1] += power_si[1][7] 
