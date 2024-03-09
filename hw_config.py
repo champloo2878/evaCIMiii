@@ -31,6 +31,9 @@ class Config:
 
 class hwc:
     def __init__(self, config):
+        self.AL = config.AL
+        self.PC = config.PC
+        self.SCR = config.SCR
         self.BusWidth = config.BUS_WIDTH
         self.CIMsWriteWidth = config.CIMsWriteWidth
         self.CIMsComputeWidth = config.CIMsComputeWidth

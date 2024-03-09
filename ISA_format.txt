@@ -4,6 +4,8 @@ Linp <pos> $0
 
 Lwt <pos> $0 <cm_addr> $0
 
+Lwtp <pos> $0
+
 Cmpfis <is_addr> $0 <ca> $0 <aor>
 
 Cmpfis <is_addr> $0 <ca> $0 <tos> <os_addr> $0
