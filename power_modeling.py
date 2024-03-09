@@ -1,8 +1,10 @@
 import hw_config as cfg
 import numpy as np
 
-def get_power(acc0, gdacc, gdp):
-    pass
+def get_power(acc0):
+    gdacc = cfg.hwc(config= cfg.Config())
+    gdp = np.loadtxt('./Golden_Case/sorted_power_rpt.csv', dtype=str, skiprows=2, delimiter=',')[:,1:9].astype(float)
+
     linf_paras = np.array(
         [
             [1, 0], # fd.is
@@ -14,6 +16,7 @@ def get_power(acc0, gdacc, gdp):
             [1, 0]  # top.regs
         ]
     )
+
     estm_power = np.zeros((18, 8))
     for i in range(18):
         # Power.fd.is = f(IS_size)
@@ -36,12 +39,6 @@ def get_power(acc0, gdacc, gdp):
     return estm_power
 
 
+# acc0 = cfg.hwc(config= cfg.Config(bus_width= 256, is_depth= 1024, al= 128, pc= 16, scr= 16, os_depth= 2048))
+# np.savetxt("power_modeling.csv", get_power(acc0), fmt="%.2f")
 
-golden_acc = cfg.hwc(config= cfg.Config())
-golden_power = np.loadtxt('./Golden_Case/sorted_power_rpt.csv', dtype=str, skiprows=2, delimiter=',')[:,1:9].astype(float)
-
-acc0 = cfg.hwc(config= cfg.Config(bus_width= 256, is_depth= 1024, al= 128, pc= 16, scr= 16, os_depth= 2048))
-
-
-acc0_power = get_power(acc0, golden_acc, golden_power)
-print(acc0_power)

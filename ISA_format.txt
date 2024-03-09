@@ -1,0 +1,34 @@
+Lin <pos> $0 <is_addr> $0
+
+Linp <pos> $0
+
+Lwt <pos> $0 <cm_addr> $0
+
+Cmpfis <is_addr> $0 <ca> $0 <aor>
+
+Cmpfis <is_addr> $0 <ca> $0 <tos> <os_addr> $0
+
+Cmpfis <is_addr> $0 <ca> $0 <aos> <os_addr> $0
+
+Cmpfis <is_addr> $0 <ca> $0 <ptos>
+
+Cmpfis <is_addr> $0 <ca> $0 <paos>
+
+Cmpfgt <pos> $0 <ca> $0 <aor>
+
+Cmpfgt <pos> $0 <ca> $0 <tos> <os_addr> $0
+
+Cmpfgt <pos> $0 <ca> $0 <aos> <os_addr> $0
+
+Cmpfgt <pos> $0 <ca> $0 <ptos>
+
+Cmpfgt <pos> $0 <ca> $0 <paos>
+
+Cmpfgtp <pos> $0
+
+Lpenalty
+
+Nop
+
+# attach prefetch read format:
+xx <os_rd_addr> $0
