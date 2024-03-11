@@ -1,5 +1,5 @@
 class Config:
-    def __init__(self, bus_width= 256, is_depth= 1024, al= 128, pc= 16, scr= 16, os_depth= 2048): #default = golden case
+    def __init__(self, bus_width= 256, is_depth= 1024, al= 128, pc= 16, scr= 16, os_depth= 2048, freq = 250): #default = golden case
         self.AL = al  # acc_len for all CIMs
         self.PC = pc  # parallel_channel for all CIMs
         self.SCR = scr
@@ -28,6 +28,7 @@ class Config:
 
         self.CIMsComputeWidth = self.SIN_AL * self.MACRO_COL * self.DATA_WIDTH
         self.CIMsWriteWidth = self.CIMs_COL
+        self.freq = freq
 
 class hwc:
     def __init__(self, config):
@@ -35,6 +36,7 @@ class hwc:
         self.PC = config.PC
         self.SCR = config.SCR
         self.BusWidth = config.BUS_WIDTH
+        self.freq = config.freq
         self.CIMsWriteWidth = config.CIMsWriteWidth
         self.CIMsComputeWidth = config.CIMsComputeWidth
         self.CIMsrows = config.CIMs_ROW
@@ -49,6 +51,7 @@ class hwc:
         self.IS_size = self.InputSRAMWidth * self.InputSRAMDepth / config.DATA_WIDTH /1024 # kB
         self.OS_size = self.OutputSRAMWidth * self.OutputSRAMDepth / config.DATA_WIDTH /1024# kB
         self.CIM_size = config.CIMs_ROW * config.CIMs_COL / config.DATA_WIDTH /1024 #kB
+
     
     def check(self):
         print("AXI Width:", self.BusWidth)
