@@ -377,6 +377,7 @@ class MicroInstructionCompiler:
 
     def compile(self):
         # Main method to compile instructions
+        print("**"+self.data_stream+" compiling**")
         self.log_init()
         if self.data_stream in ['isap', 'ispp']:
             self.is_process()
@@ -385,6 +386,7 @@ class MicroInstructionCompiler:
         # Additional logic to finalize compilation and manage stack
         for i in range(self.fifo_len):
             self.stk.push()
+        
 
     # Add any additional methods or utility functions as needed
     def print(self):
