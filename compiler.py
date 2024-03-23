@@ -420,8 +420,8 @@ class MicroInstructionCompiler:
 
 # Example usage:
 if __name__ == "__main__":
-    config = Config(al=128, pc=16, scr=4, bus_width=128, is_depth=2, os_depth=1024)
-    gli = ['mvm', (32, 256, 2)]
+    config = Config(al=128, pc=16, scr=4, bus_width=128, is_depth=1024, os_depth=1024)
+    gli = ['mvm', (512, 768, 768)]
     data_stream = 'wspp'
     VERIFY = False
 
