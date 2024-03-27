@@ -23,7 +23,7 @@ def block_decision(acc0, gli, op_target):
         cmpme = np.zeros(8)
         for i in range(8):
             cmpme[i] = metric_rec[i][op_target]
-        
+
         if op_target == 'ee_L2' or op_target == 'throughput':
             return metric_rec[np.argmax(cmpme)], dataflow[np.argmax(cmpme)]
         else:
@@ -37,8 +37,8 @@ def Bert_decision(acc0, seq_len, hidden_size, head_num, num_layers, op_target):
     
     m0 = block_decision(acc0, ('proj',(seq_len, hidden_size, hidden_size)), op_target)
 
-    lhd_fg = evaluate(acc0, ('a2a', (seq_len, hidden_size, head_num)), 'lhd') == {}  
-    if lhd_fg:
+    lhd_nfg = evaluate(acc0, ('a2a', (seq_len, hidden_size, head_num)), 'lhd') == {}  
+    if lhd_nfg:
         m10 = block_decision(acc0, ('proj',(seq_len, hidden_size/head_num, seq_len)), op_target)
         m11 = block_decision(acc0, ('proj',(hidden_size/head_num, seq_len, seq_len)), op_target)
     else:
@@ -47,13 +47,14 @@ def Bert_decision(acc0, seq_len, hidden_size, head_num, num_layers, op_target):
     # m2 = m0 # concat, m0 * 4
     
     m3 = block_decision(acc0, ('proj',(seq_len, hidden_size, hidden_size*4)), op_target)
+
     m4 = block_decision(acc0, ('proj',(seq_len, hidden_size*4, hidden_size)), op_target)
 
     # m0*4, m10,m11*12 / m1*1, m3*1, m4*1
-    if lhd_fg:
-        total_energy = num_layers*(m0[0]['energy_L2']*4 + (m10[0]['energy_L2'] + m11[0]['energy_L2'])*12 + m3[0]['energy_L2'] + m4[0]['energy_L2'])
-        total_op = num_layers*(m0[0]['op']*4 + (m10[0]['op'] + m11[0]['op'])*12 + m3[0]['op'] + m4[0]['op'])
-        total_delay = num_layers*(m0[0]['delay']*4 + (m10[0]['delay'] + m11[0]['delay'])*12 + m3[0]['delay'] + m4[0]['delay'])
+    if lhd_nfg:
+        total_energy = num_layers*(m0[0]['energy_L2']*4 + (m10[0]['energy_L2'] + m11[0]['energy_L2'])*head_num + m3[0]['energy_L2'] + m4[0]['energy_L2'])
+        total_op = num_layers*(m0[0]['op']*4 + (m10[0]['op'] + m11[0]['op'])*head_num + m3[0]['op'] + m4[0]['op'])
+        total_delay = num_layers*(m0[0]['delay']*4 + (m10[0]['delay'] + m11[0]['delay'])*head_num + m3[0]['delay'] + m4[0]['delay'])
     else:
         total_energy = num_layers*(m0[0]['energy_L2']*4 + m1[0]['energy_L2'] + m3[0]['energy_L2'] + m4[0]['energy_L2'])
         total_op = num_layers*(m0[0]['op']*4 + m1[0]['op'] + m3[0]['op'] + m4[0]['op'])
@@ -71,7 +72,7 @@ def Bert_decision(acc0, seq_len, hidden_size, head_num, num_layers, op_target):
     elif op_target == 'EDP': return_metric = total_EDP
     else: print("?")
     
-    if lhd_fg:
+    if lhd_nfg:
         decision = [m0[1],m10[1],m11[1],m0[1],m3[1],m4[1]]
     else:
         decision = [m0[1],m1[1],m0[1],m3[1],m4[1]]

@@ -9,6 +9,8 @@ num_point = len(dse_res)
 x = [0 for i in range(num_point)]
 y = [0 for i in range(num_point)]
 
+print(dse_res)
+
 for i in range(num_point):
     x[i] = dse_res[i][0]
     y[i] = dse_res[i][1]

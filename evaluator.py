@@ -43,7 +43,6 @@ def evaluate(acc0, gli, dataflow):
       for i in range(21):
          icnt[i] = cres[2*i+1]
 
-      # print(cres)
       metrics['area'] = area_modeling(acc0) # um2
 
       ##### energy #####
@@ -52,20 +51,24 @@ def evaluate(acc0, gli, dataflow):
       for i in range(18):
          energy[i] = power[i] * icnt[i] * 2 # Unit: pJ
       energy[18] = np.sum(energy[0:19],axis=0) # sum
-      # print("energy w/o IS reward:",energy[18])
       same_is_addr_saving = power[4][0]*icnt[18]*2  # power{"Cmpfis_aor","fd_is"} * IS_reward
       energy[18,0] = energy[18,0] - same_is_addr_saving
       energy[18,7] = energy[18,7] - same_is_addr_saving
-      # print("energy w IS reward:", energy[18])
       metrics['energy'] = energy # pJ
 
       metrics['cycle'] = sum(icnt[0:17])
-      metrics['op'] = sum(icnt[4:14])*acc0.AL*acc0.PC*2
+      if gli[0] == 'proj':
+         metrics['op'] = sum(icnt[4:14])*min(acc0.AL, gli[1][1])*min(acc0.PC, gli[1][0])*2
+      else:
+         #QK phase & PV phase
+         metrics['op'] = (sum(icnt[4:14])-icnt[20])*min(acc0.AL, gli[1][1]/gli[1][2])*min(acc0.PC, gli[1][0])*2
+         metrics['op'] += (icnt[20])*min(acc0.AL, gli[1][0])*min(acc0.PC, gli[1][1]/gli[1][2])*2
+      #metrics['op'] = sum(icnt[4:14])*acc0.AL*acc0.PC*2
 
-      metrics['delay'] = metrics['cycle'] * (1000/acc0.freq) # Unit: ns
-      metrics['ee_L1'] = metrics['op'] / metrics['energy'][18,7] # TOPS/W
-      metrics['throughput'] = metrics['op'] / metrics['delay'] # GOPS
-      metrics['ae_L1'] = metrics['throughput'] / metrics['area'][7] *1000 # TOPS/mm2
+      metrics['delay'] = float(metrics['cycle']) * (1000.0/float(acc0.freq)) # Unit: ns
+      metrics['ee_L1'] = float(metrics['op']) / metrics['energy'][18,7] # TOPS/W
+      metrics['throughput'] = float(metrics['op']) / metrics['delay'] # GOPS
+      metrics['ae_L1'] = float(metrics['throughput']) / metrics['area'][7] *1000 # TOPS/mm2
 
       bit_energy_L2 = 1 #pJ/bit
       metrics['read_bits_L2'] = (sum(icnt[0:4]) + sum(icnt[9:16]) - icnt[19] - icnt[20])*acc0.BusWidth
