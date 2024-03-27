@@ -43,7 +43,7 @@ def evaluate(acc0, gli, dataflow):
       for i in range(21):
          icnt[i] = cres[2*i+1]
 
-      print(cres)
+      # print(cres)
       metrics['area'] = area_modeling(acc0) # um2
 
       ##### energy #####
@@ -73,6 +73,8 @@ def evaluate(acc0, gli, dataflow):
       energy_L2 = (metrics['read_bits_L2'] + metrics["write_bits_L2"])*bit_energy_L2
       metrics['ee_L2'] = metrics['op'] / (metrics['energy'][18,7] + energy_L2)
       metrics['EDP'] = (metrics['energy'][18,7] + energy_L2) * metrics['delay'] / 1e12 # Unit: nJs
+
+      metrics['energy_L2'] = metrics['op']/metrics['ee_L2']
 
    else:
       pass
