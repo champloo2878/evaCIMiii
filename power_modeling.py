@@ -1,44 +1,70 @@
-import hw_config as cfg
 import numpy as np
+import pickle as pk
+import hw_config as cfg
 
-def get_power(acc0):
-    gdacc = cfg.hwc(config= cfg.Config())
-    gdp = np.loadtxt('./Golden_Case/sorted_power_rpt.csv', dtype=str, skiprows=2, delimiter=',')[:,1:9].astype(float)
+#area: 0: fd_is, 1: fd_reg, 2: cims, 3: macros_reg, 4: gd_os, 5: gd_reg, 6: top_reg, 7:total_area;
 
-    linf_paras = np.array(
-        [
-            [1, 0], # fd.is
-            [1, 0], # fd.regs
-            [1, 0], # cm.cims
-            [1, 0], # cm.regs
-            [1, 0], # gd.os
-            [1, 0], # gd.regs
-            [1, 0]  # top.regs
-        ]
-    )
+def power_modeling(acc0):
 
-    estm_power = np.zeros((18, 8))
+    instructions = [
+            "Lin", # 0
+            "Linp", # 1
+            "Lwt", # 2
+            "Lwtp", # 3
+            "Cmpfis_aor", # 4
+            "Cmpfis_tos", # 5
+            "Cmpfis_aos", # 6
+            "Cmpfis_ptos", # 7
+            "Cmpfis_paos", # 8 
+            "Cmpfgt_aor", # 9   
+            "Cmpfgt_tos", # 10
+            "Cmpfgt_aos", # 11
+            "Cmpfgt_ptos", # 12
+            "Cmpfgt_paos", # 13
+            "Cmpfgtp", # 14
+            "Lpenalty", # 15
+            "Nop", # 16
+            "Nop_w_rd" # 17
+            ]
+
+    power = np.zeros((18,8))
+
     for i in range(18):
-        # Power.fd.is = f(IS_size)
-        estm_power[i,0] = gdp[i,0]* (linf_paras[0,0]*acc0.IS_size + linf_paras[0,1])/ (linf_paras[0,0]*gdacc.IS_size + linf_paras[0,1])
-        # Power.fd.regs = f(InputSRAMWidth)
-        estm_power[i,1] = gdp[i,1]* (linf_paras[1,0]*acc0.InputSRAMWidth + linf_paras[1,1])/ (linf_paras[1,0]*gdacc.InputSRAMWidth + linf_paras[1,1])
-        # Power.cm.cims = f(MACRO_ROW*MACRO_COL)
-        estm_power[i,2] = gdp[i,2]* (linf_paras[2,0]*acc0.MACRO_ROW*acc0.MACRO_COL + linf_paras[2,1])/ (linf_paras[2,0]*gdacc.MACRO_ROW*gdacc.MACRO_COL + linf_paras[2,1])
-        # Power.cm.regs = f(CIMsComputeWidth)
-        estm_power[i,3] = gdp[i,3]* (linf_paras[3,0]*acc0.CIMsComputeWidth + linf_paras[3,1])/ (linf_paras[3,0]*gdacc.CIMsComputeWidth + linf_paras[3,1])
-        # Power.gd.os = f(OS_size)
-        estm_power[i,4] = gdp[i,4]* (linf_paras[4,0]*acc0.OS_size + linf_paras[4,1])/ (linf_paras[4,0]*gdacc.OS_size + linf_paras[4,1])
-        # Power.gd.regs = f(OutputSRAMWidth)
-        estm_power[i,5] = gdp[i,5]* (linf_paras[5,0]*acc0.OutputSRAMWidth + linf_paras[5,1])/ (linf_paras[5,0]*gdacc.OutputSRAMWidth + linf_paras[5,1])
-        # Power.top.ctrls = f(BusWidth)
-        estm_power[i,6] = gdp[i,6]* (linf_paras[6,0]*acc0.BusWidth + linf_paras[6,1])/ (linf_paras[6,0]*gdacc.BusWidth + linf_paras[6,1])
-        
-        estm_power[i,7] = sum(estm_power[i,:])                
+        with open("./power_paras/"+instructions[i]+".pk","rb") as pkf:
+            kbs = pk.load(pkf)
+            # fd.is
+            power[i][0] = (acc0.AL/64)*(acc0.InputSRAMDepth*kbs[0][0] + kbs[0][2])
+            # fd.reg 
+            power[i][1] = acc0.BusWidth*kbs[1][0] + acc0.AL*kbs[1][1] + kbs[1][2]
+            # cims
+            power[i][2] = (acc0.AL*acc0.PC/64/8) * kbs[2][0] + kbs[2][2]
+            # cim_reg
+            power[i][3] = acc0.AL*kbs[3][0] + acc0.PC*kbs[3][1] + kbs[3][2]
+            # gd_os
+            power[i][4] = (acc0.PC/8)*(acc0.OutputSRAMDepth*kbs[4][0] + kbs[4][2])
+            # gd_reg
+            power[i][5] = acc0.PC*kbs[5][0] + acc0.BusWidth*kbs[5][1] + kbs[5][2]
+            # top_reg
+            power[i][6] = acc0.BusWidth*kbs[6][0] + kbs[6][2]
+            power[i][7] = power[i][0] + power[i][1] + power[i][2] + power[i][3] + power[i][4] + power[i][5] + power[i][6]
 
-    return estm_power
+    # bad case correct:
+    power[4][0] = power[5][0]
+    power[4][2] = power[5][2]
+    i = 4
+    power[i][7] = power[i][0] + power[i][1] + power[i][2] + power[i][3] + power[i][4] + power[i][5] + power[i][6]
+
+    return power
 
 
-# acc0 = cfg.hwc(config= cfg.Config(bus_width= 256, is_depth= 1024, al= 128, pc= 16, scr= 16, os_depth= 2048))
-# np.savetxt("power_modeling.csv", get_power(acc0), fmt="%.2f")
 
+if __name__ == "__main__":
+    acc0 = cfg.hwc(config = cfg.Config(bus_width = 128,
+                                   is_depth = 256,
+                                   al = 512,
+                                   pc = 64,
+                                   # scr = 16,
+                                   os_depth = 512
+                                   ))
+
+    print(power_modeling(acc0))

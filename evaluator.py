@@ -1,200 +1,108 @@
-# cmpfis of same address with the last cmpfis, power of the input sram could be ignored.
-import numpy as np
+from subprocess import run
 import hw_config as cfg
-from power_modeling import get_power
-from area_modeling import get_area
-from compiler import MicroInstructionCompiler
+import numpy as np
+from power_modeling import power_modeling
+from area_modeling import area_modeling
 
 
-class evaluator:
-    def __init__(self, HW, inst_path):
-        self.HW = HW
-        self.instruction_set = ['Lin', 'Linp', 'Lwt', 'Lwtp', 'Cmpfis', 'Cmpfgt', 'Cmpfgtp', 'Lpenalty', 'Nop']
-        self.inst_path = inst_path
-        self.power_si = get_power(HW)
-        self.area = get_area(HW)
-        self.metrics = {
-            # Consumption on L1 Level
-            'Lin': 0.0,
-            'Linp': 0.0,
-            'Lwt': 0.0,
-            'Lwtp': 0.0,
-            'Cmpfis_aor': 0.0,
-            'Cmpfis_tos': 0.0,
-            'Cmpfis_aos': 0.0,
-            'Cmpfis_ptos': 0.0,
-            'Cmpfis_paos': 0.0,
-            'Cmpfgt_aor': 0.0,
-            'Cmpfgt_tos': 0.0,
-            'Cmpfgt_aos': 0.0,
-            'Cmpfgt_ptos': 0.0,
-            'Cmpfgt_paos': 0.0,
-            'Cmpfgtp': 0.0,
-            'Lpenalty': 0.0,
-            'Nop': 0.0,
-            'Energy_L1': 0.0,
-            'FD_IS': 0.0,
-            'FD_REG': 0.0,
-            'CM_MACRO': 0.0,
-            'CM_REG': 0.0,
-            'GD_OS': 0.0,
-            'GD_REG':0.0,
-            'Top_REG': 0.0, 
-            'Area_L1': 0.0, # um2
-            'Cycle': 0,
-            'op': 0,
-            'Delay': 0.0, # ns
-            'Throughput': 0.0, # GOPS
-            'Energy_Efficiency_L1': 0.0, # Tops/W
-            'Area_Efficiency_L1': 0.0, # TOPS/mm2
+#acc0 = cfg.hwc(config = cfg.Config(bus_width = 256, is_depth = 1024, al = 128, pc = 8, scr = 8, os_depth = 2048))
+#gli = ("mvm",(64,1024,1024))
 
-            # Consumption on L2 Level
-            'Read_bits_L2': 0.0, # bit
-            'Write_bits_L2': 0.0,
-            'Energy_L2': 0.0
+def evaluate(acc0, gli, dataflow):
+   types = [
+           "Lin", # 0
+           "Linp", # 1
+           "Lwt", # 2
+           "Lwtp", # 3
+           "Cmpfis_aor", # 4
+           "Cmpfis_tos", # 5
+           "Cmpfis_aos", # 6
+           "Cmpfis_ptos", # 7
+           "Cmpfis_paos", # 8 
+           "Cmpfgt_aor", # 9   
+           "Cmpfgt_tos", # 10
+           "Cmpfgt_aos", # 11
+           "Cmpfgt_ptos", # 12
+           "Cmpfgt_paos", # 13
+           "Cmpfgtp", # 14
+           "Lpenalty", # 15
+           "Nop", # 16
+           "Nop_w_rd", # 17
+           "IS_reward", # 18
+           "L2_reward", # 19
+           "Fussion" # 20
+           ]
 
-        }
+   metrics = {}
 
+   cmd = "./CIMMA_Compiler/compiler_count "+str(acc0.BusWidth)+" "+str(acc0.AL)+" "+str(acc0.PC)+" "+str(acc0.SCR)+" "+str(acc0.InputSRAMDepth)+" "+str(acc0.OutputSRAMDepth)+" "+str(acc0.freq)+" \""+gli[0]+"\" "+str(gli[1][0])+" "+str(gli[1][1])+" "+str(gli[1][2])+" \""+dataflow+"\""
 
-    def check_prefetch_read(self, inst, power_src, power_pr):
-        if inst == '<os_rd_addr>': return power_src + power_pr
-        else: return power_src
+   cres = run(cmd, capture_output=True, text=True).stdout.split() # attention the print format in .c
+   icnt = np.zeros(21)
+   if cres[0] != "ERROR":
+      for i in range(21):
+         icnt[i] = cres[2*i+1]
 
-    def evaluate(self):
-        with open(self.inst_path, 'r') as cflow:
-            eva_start = False
+      print(cres)
+      metrics['area'] = area_modeling(acc0) # um2
 
-            for line in cflow:
+      ##### energy #####
+      power = power_modeling(acc0)
+      energy = np.zeros((19,8)) # energy on types[0:17], sum on the last row
+      for i in range(18):
+         energy[i] = power[i] * icnt[i] * 2 # Unit: pJ
+      energy[18] = np.sum(energy[0:19],axis=0) # sum
+      # print("energy w/o IS reward:",energy[18])
+      same_is_addr_saving = power[4][0]*icnt[18]*2  # power{"Cmpfis_aor","fd_is"} * IS_reward
+      energy[18,0] = energy[18,0] - same_is_addr_saving
+      energy[18,7] = energy[18,7] - same_is_addr_saving
+      # print("energy w IS reward:", energy[18])
+      metrics['energy'] = energy # pJ
 
-                if 'starting compiler' in line:
-                    eva_start = True
-                    print("**eva launch**")
-                    continue
+      metrics['cycle'] = sum(icnt[0:17])
+      metrics['op'] = sum(icnt[4:14])*acc0.AL*acc0.PC*2
 
-                if eva_start:
-                    self.metrics['Cycle'] += 1
+      metrics['delay'] = metrics['cycle'] * (1000/acc0.freq) # Unit: ns
+      metrics['ee_L1'] = metrics['op'] / metrics['energy'][18,7] # TOPS/W
+      metrics['throughput'] = metrics['op'] / metrics['delay'] # GOPS
+      metrics['ae_L1'] = metrics['throughput'] / metrics['area'][7] *1000 # TOPS/mm2
 
-                    inst = line.split()
-                    if inst == []: continue
-                    if inst[0] == self.instruction_set[0]: # Lin
-                        self.metrics['Lin'] += self.check_prefetch_read(inst[-2], self.power_si[0][7], self.power_si[17][7])
-                        self.metrics['Read_bits_L2'] += self.HW.BusWidth 
+      bit_energy_L2 = 1 #pJ/bit
+      metrics['read_bits_L2'] = (sum(icnt[0:4]) + sum(icnt[9:16]) - icnt[19] - icnt[20])*acc0.BusWidth
+      metrics['write_bits_L2'] = (sum(icnt[7:9]) + sum(icnt[12:14]) - icnt[20])*acc0.BusWidth
+      energy_L2 = (metrics['read_bits_L2'] + metrics["write_bits_L2"])*bit_energy_L2
+      metrics['ee_L2'] = metrics['op'] / (metrics['energy'][18,7] + energy_L2)
+      metrics['EDP'] = (metrics['energy'][18,7] + energy_L2) * metrics['delay'] / 1e12 # Unit: nJs
 
-                    elif inst[0] == self.instruction_set[1]: # Linp
-                        self.metrics['Linp'] += self.check_prefetch_read(inst[-2], self.power_si[1][7], self.power_si[17][7])
-                        self.metrics['Read_bits_L2'] += self.HW.BusWidth 
-                         
-                    elif inst[0] == self.instruction_set[2]: # Lwt
-                        self.metrics['Lwt'] += self.check_prefetch_read(inst[-2], self.power_si[2][7], self.power_si[17][7]) 
-                        self.metrics['Read_bits_L2'] += self.HW.BusWidth 
+   else:
+      pass
 
-                    elif inst[0] == self.instruction_set[3]: # Lwtp
-                        self.metrics['Lwtp'] += self.check_prefetch_read(inst[-2], self.power_si[3][7], self.power_si[17][7]) 
-                        self.metrics['Read_bits_L2'] += self.HW.BusWidth 
-
-                    elif inst[0] == self.instruction_set[4]: # Cmpfis
-                        self.metrics['op'] += self.HW.AL * self.HW.PC * 2
-                        if inst[5] == '<aor>': 
-                            self.metrics['Cmpfis_aor'] += self.check_prefetch_read(inst[-2], self.power_si[4][7], self.power_si[17][7]) 
-
-                        elif inst[5] == '<tos>':
-                            self.metrics['Cmpfis_tos'] += self.check_prefetch_read(inst[-2], self.power_si[5][7], self.power_si[17][7]) 
-
-                        elif inst[5] == '<aos>':
-                            self.metrics['Cmpfis_aos'] += self.check_prefetch_read(inst[-2], self.power_si[6][7], self.power_si[17][7]) 
-
-                        elif inst[5] == '<ptos>':
-                            self.metrics['Cmpfis_ptos'] += self.check_prefetch_read(inst[-2], self.power_si[7][7], self.power_si[17][7]) 
-
-                        elif inst[5] == '<paos>':
-                            self.metrics['Cmpfis_paos'] += self.check_prefetch_read(inst[-2], self.power_si[8][7], self.power_si[17][7]) 
+   return metrics
 
 
-                    elif inst[0] == self.instruction_set[5]: # Cmpfgt
-                        self.metrics['op'] += self.HW.AL * self.HW.PC * 2
-                        self.metrics['Read_bits_L2'] += self.HW.BusWidth 
-                        
-                        if inst[5] == '<aor>': 
-                            self.metrics['Cmpfgt_aor'] += self.check_prefetch_read(inst[-2], self.power_si[9][7], self.power_si[17][7]) 
-
-                        elif inst[5] == '<tos>':
-                            self.metrics['Cmpfgt_tos'] += self.check_prefetch_read(inst[-2], self.power_si[10][7], self.power_si[17][7]) 
-
-                        elif inst[5] == '<aos>':
-                            self.metrics['Cmpfgt_aos'] += self.check_prefetch_read(inst[-2], self.power_si[11][7], self.power_si[17][7]) 
-
-                        elif inst[5] == '<ptos>':
-                            self.metrics['Cmpfgt_ptos'] += self.check_prefetch_read(inst[-2], self.power_si[12][7], self.power_si[17][7]) 
-
-                        elif inst[5] == '<paos>':
-                            self.metrics['Cmpfgt_paos'] += self.check_prefetch_read(inst[-2], self.power_si[13][7], self.power_si[17][7]) 
-
-                    elif inst[0] == self.instruction_set[6]: # Cmpfgtp
-                        self.metrics['Cmpfgtp'] += self.check_prefetch_read(inst[-2], self.power_si[14][7], self.power_si[17][7]) 
-                        self.metrics['Read_bits_L2'] += self.HW.BusWidth 
-
-                    elif inst[0] == self.instruction_set[7]: # Lpenalty
-                        self.metrics['Lpenalty'] += self.check_prefetch_read(inst[1 if len(inst) > 1 else 0], self.power_si[15][7], self.power_si[17][7]) 
-                        self.metrics['Read_bits_L2'] += self.HW.BusWidth 
-
-                    elif inst[0] == self.instruction_set[8]: # nop
-                        self.metrics['Nop'] += self.check_prefetch_read(inst[1 if len(inst) > 1 else 0], self.power_si[16][7], self.power_si[17][7]) 
-
-            self.metrics['Energy_L1'] = (self.metrics['Lin'] + \
-                                        self.metrics['Linp'] + \
-                                        self.metrics['Lwt'] + \
-                                        self.metrics['Lwtp'] + \
-                                        self.metrics['Cmpfis_aor'] + \
-                                        self.metrics['Cmpfis_tos'] + \
-                                        self.metrics['Cmpfis_aos'] + \
-                                        self.metrics['Cmpfis_ptos'] + \
-                                        self.metrics['Cmpfis_paos'] + \
-                                        self.metrics['Cmpfgt_aor'] + \
-                                        self.metrics['Cmpfgt_tos'] + \
-                                        self.metrics['Cmpfgt_aos'] + \
-                                        self.metrics['Cmpfgt_ptos'] + \
-                                        self.metrics['Cmpfgt_paos'] + \
-                                        self.metrics['Cmpfgtp'] + \
-                                        self.metrics['Lpenalty'] + \
-                                        self.metrics['Nop']) * (1000/self.HW.freq) # pJ
-            
-            self.metrics['FD_IS'] = self.area[0]
-            self.metrics['FD_REG'] = self.area[1]
-            self.metrics['CM_MACRO'] = self.area[2]
-            self.metrics['CM_REG'] = self.area[3]
-            self.metrics['GD_OS'] = self.area[4]
-            self.metrics['GD_REG'] = self.area[5]
-            self.metrics['Top_REG'] = self.area[6]
-            self.metrics['Area_L1'] = self.area[7]
-
-            self.metrics['Delay'] = self.metrics['Cycle'] * (1000/self.HW.freq) # Unit: ns        
-            self.metrics['Energy_Efficiency_L1'] = self.metrics['op'] / self.metrics['Energy_L1']
-            self.metrics['Throughput'] = self.metrics['op'] / self.metrics['Delay']
-            self.metrics['Area_Efficiency_L1'] = self.metrics['op'] / self.metrics['Delay'] / self.metrics['Area_L1'] * 1000
-
-            bit_access_energy_L2 = 1 # pJ/bit
-            self.metrics['Energy_L2'] = (self.metrics['Read_bits_L2'] + self.metrics['Write_bits_L2']) * bit_access_energy_L2
-
-    def evaprint(self):
-        for key,value in self.metrics.items():
-            print(key,':\t',value) 
-
-
-# Example usage:
 if __name__ == "__main__":
-    config = cfg.Config(al=128, pc=16, scr=16, bus_width=256, is_depth=1024, os_depth=2048)
-    # config = cfg.Config(al=128, pc=16, scr=4, bus_width=128, is_depth=2, os_depth=1024)
-    gli = ['mvm', (64, 768, 768)]
-    data_stream = 'wspp'
-    VERIFY = False
+   acc0 = cfg.hwc(config = cfg.Config(bus_width = 256, is_depth = 1024, al = 128, pc = 16, scr = 16, os_depth = 2048))
+   gli = ("mvm",(64,64,64))
 
-    compiler = MicroInstructionCompiler(config, gli, data_stream, VERIFY)
-    compiler.compile()
+   for dataflow in ["isap","ispp","wsap","wspp"]:
+      metrics = evaluate(acc0, gli, dataflow)
 
-    eesama = evaluator(cfg.hwc(config), "./cflow/"+data_stream+".log")
-    eesama.evaluate()
-    eesama.evaprint()
+      print(metrics['ee_L2'])
+      # print(metrics['delay'])
+      # print(metrics['read_bits_L2'])
+      # print(metrics['write_bits_L2'])
+   print(metrics['area'])
 
-    # Additional code to output or work with the compiled instructions
+   mld = evaluate(acc0, ("mha",(128,768,12)), 'lhd')
+   print(mld['ee_L2'])
+   print(mld['ee_L1'])
+   print(mld['write_bits_L2'])
+   print(mld['read_bits_L2'])
+
+
+
+# check methods:
+# 1. same ops for dataflows
+# 2. enough sram: check read/write L2 bits
 
 
