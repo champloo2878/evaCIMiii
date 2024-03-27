@@ -30,11 +30,32 @@ def block_decision(acc0, gli, op_target):
             return metric_rec[np.argmin(cmpme)], dataflow[np.argmin(cmpme)]
 
     elif gli[0] == 'a2a':
-        return evaluate(acc0, gli, 'lhd')
+        return evaluate(acc0, gli, 'lhd'), 'lhd'
         
 
-def Bert_decision(acc0, hidden_size, op_target):
+def Bert_decision(acc0, seq_len, hidden_size, head_num, op_target):
     
+    m0 = block_decision(acc0, ('proj',(seq_len, hidden_size, hidden_size)), op_target)
+
+    lhd_fg = evaluate(acc0, ('a2a', (seq_len, hidden_size, head_num)), 'lhd') == {}  
+    if lhd_fg:
+        m10 = block_decision(acc0, ('proj',(seq_len, hidden_size/head_num, seq_len)), op_target)
+        m11 = block_decision(acc0, ('proj',(hidden_size/head_num, seq_len, seq_len)), op_target)
+    else:
+        m1 = block_decision(acc0, ('a2a',(seq_len, hidden_size, head_num)), op_target)
+    
+    # m2 = m0 # concat, m0 * 4
+    
+    m3 = block_decision(acc0, ('proj',(seq_len, hidden_size, hidden_size*4)), op_target)
+    m4 = block_decision(acc0, ('proj',(seq_len, hidden_size*4, hidden_size)), op_target)
+
+    if lhd_fg:
+        decision = [m0[1],m10[1],m11[1],m0[1],m3[1],m4[1]]
+    else:
+        decision = [m0[1],m1[1],m0[1],m3[1],m4[1]]
+    
+    print(decision)
+
     pass
 
 
@@ -45,6 +66,8 @@ meme = block_decision(acc0, gli, 'ee_L2')
 for content in meme[0]:
     print(content,":",meme[0][content])
 print(meme[1])
+
+Bert_decision(acc0, seq_len=64, hidden_size=1024, head_num=12, op_target='ee_L2')
 
 
 
